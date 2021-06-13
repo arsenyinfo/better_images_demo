@@ -1,8 +1,11 @@
 import base64
 import json
-import logging 
-import os 
-import sys 
+import logging
+import os
+import sys
+from glob import glob
+from io import BytesIO
+
 import cv2
 import numpy as np
 import requests
@@ -20,7 +23,14 @@ def str_to_image(s: str) -> np.ndarray:
 
 
 st.title("Better Images example")
-uploaded_file = st.file_uploader("Choose an image...", type="jpg")
+
+preset_images = {os.path.basename(x): x for x in glob('./images/*.jpg')}
+image_path = preset_images[st.selectbox("Choose image", list(preset_images.keys()))]
+with open(image_path, 'rb') as fd:
+    uploaded_file = BytesIO(fd.read())
+
+if st.button('...or upload your own image'):
+    uploaded_file = st.file_uploader("Choose an image...", type="jpg")
 
 HOST = os.environ.get('BETTER_IMAGES_HOST', 'http://127.0.0.1:8000')
 endpoints = {'enlighten': 'improve_colors',
@@ -31,27 +41,29 @@ endpoint = endpoints[st.radio('operation', list(endpoints.keys()))]
 
 def process(uploaded_file=uploaded_file, endpoint=endpoint):
     img_b64 = base64.b64encode(uploaded_file.read()).decode('utf-8')
+
     image = Image.open(uploaded_file)
     st.image(image, caption='Uploaded Image.', use_column_width=True)
     if st.button('Process!'):
         url = f'{HOST}/{endpoint}'
         logger.info(f'Posting to {url}')
         resp = requests.post(url,
-                             data=json.dumps({'auth_key': os.environ['BETTER_IMAGES_API_KEY'], 'image': img_b64}).encode(),
-                             headers={'Content-type': 'application/json', 'Accept': 'text/plain'}
+                             data=json.dumps({'auth_key': os.environ['BETTER_IMAGES_API_KEY'],
+                                              'image': img_b64}).encode(),
+                             headers={'Content-type': 'application/json',
+                                      'Accept': 'text/plain'}
                              )
-        result = resp.json()
-
         try:
+            result = resp.json()
             st.write(result['message'])
             if not result['error']:
                 st.image(
-                    cv2.cvtColor(str_to_image(result['image']), cv2.COLOR_BGR2RGB),
+                    cv2.cvtColor(str_to_image(
+                        result['image']), cv2.COLOR_BGR2RGB),
                     caption='Processed image.', use_column_width=True)
         except Exception:
             st.write("Something went wrong :(")
-            logger.exception(f"Response: {result}")
-
+            logger.exception(f"Response: {resp}")
 
 
 if uploaded_file is not None:
