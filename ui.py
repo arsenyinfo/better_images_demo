@@ -21,7 +21,7 @@ HOST = os.environ.get('BETTER_IMAGES_HOST', 'http://127.0.0.1:8000')
 endpoints = {'enlighten': 'improve_colors',
              'remove artifacts': 'filter_artifacts'
              }
-endpoint = endpoints[st.radio('operation', ('improve colors', 'remove artifacts'))]
+endpoint = endpoints[st.radio('operation', list(endpoints.keys()))]
 
 
 def process(uploaded_file=uploaded_file, endpoint=endpoint):
