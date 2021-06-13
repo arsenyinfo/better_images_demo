@@ -29,7 +29,9 @@ def process(uploaded_file=uploaded_file, endpoint=endpoint):
     image = Image.open(uploaded_file)
     st.image(image, caption='Uploaded Image.', use_column_width=True)
     if st.button('Process!'):
-        resp = requests.post(f'{HOST}/{endpoint}',
+        url = f'{HOST}/{endpoint}'
+        print(f'posting to {url}')
+        resp = requests.post(url,
                              data=json.dumps({'auth_key': os.environ['BETTER_IMAGES_API_KEY'], 'image': img_b64}).encode(),
                              headers={'Content-type': 'application/json', 'Accept': 'text/plain'}
                              )
